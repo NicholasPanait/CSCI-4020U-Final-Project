@@ -293,8 +293,8 @@ enum class BitwiseEx {
 
 class Bitwise(val op:BitwiseEx, val left:Expr, val right:Expr): Expr() {
     override fun eval(runtime:Runtime): Data {
-        var x = left.eval(runtime)
-        var y = right.eval(runtime)
+        val x = left.eval(runtime)
+        val y = right.eval(runtime)
         if(x is IntData && y is IntData) {
             return IntData(
                 when (op) {
@@ -307,23 +307,18 @@ class Bitwise(val op:BitwiseEx, val left:Expr, val right:Expr): Expr() {
                 }
             )
         }
-        // x = x.toBinaryInt()
-        // y = y.toBinaryInt()
-        // println(x)
-        // println(y)
-        // if(x is StringData && y is StringData) {
-            // return StringData(
-            //     when (op) {
-            //         BitwiseEx.AND -> (x and y).toBinaryString()
-            //         BitwiseEx.OR -> (x or y).toBinaryString()
-            //         BitwiseEx.XOR -> (x xor y).toBinaryString()
-            //         BitwiseEx.LS -> (x shl y).toBinaryString()
-            //         BitwiseEx.RS -> (x shr y).toBinaryString()
-            //         BitwiseEx.NOT -> (x.inv() and 0xFF).toBinaryString()
-            //     }
-            // )
-        // }
-        throw Exception("cannot handle non-integer")
+        val xb = x.toString().toInt(2)
+        val yb = y.toString().toInt(2)
+        return StringData(
+            when (op) {
+                BitwiseEx.AND -> (xb and yb).toBinaryString()
+                BitwiseEx.OR -> (xb or yb).toBinaryString()
+                BitwiseEx.XOR -> (xb xor yb).toBinaryString()
+                BitwiseEx.LS -> (xb shl yb).toBinaryString()
+                BitwiseEx.RS -> (xb shr yb).toBinaryString()
+                BitwiseEx.NOT -> (xb.inv() and 0xFF).toBinaryString()
+            }
+        )
     }
 }
 
