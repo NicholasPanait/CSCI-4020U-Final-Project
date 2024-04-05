@@ -250,13 +250,52 @@ class Compare(val comparator: Comparator, val left: Expr, val right: Expr ): Exp
     }
 }
 
+fun Int.toBinaryString(): String {
+    val paddingLength = 8 - Integer.toBinaryString(this).length
+    return "0".repeat(paddingLength) + Integer.toBinaryString(this)
+}
+
+enum class BitwiseEx {
+    AND,
+    OR,
+    XOR,
+    LS,
+    RS,
+    NOT
+}
+
+class Bitwise(val op:BitwiseEx, val left:Expr, val right:Expr): Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val x = left.eval(runtime)
+        val y = right.eval(runtime)
+        if(x is IntData && y is IntData) {
+            // var xs = x.value.toBinaryString()
+            // var ys = y.value.toBinaryString()
+            // println(xs)
+            // println(ys)
+            
+            return IntData(
+                when (op) {
+                    BitwiseEx.AND -> x.value and y.value
+                    BitwiseEx.OR -> x.value or y.value
+                    BitwiseEx.XOR -> x.value xor y.value
+                    BitwiseEx.LS -> x.value shl y.value
+                    BitwiseEx.RS -> x.value shr y.value
+                    BitwiseEx.NOT -> x.value.inv() and 0xFF
+                }
+            )
+        }
+        throw Exception("cannot handle non-integer")
+    }
+}
+
 class Ifelse(val cond:Expr, val trueExpr:Expr, val falseExpr:Expr ): Expr() {
     override fun eval(runtime:Runtime): Data {
         val cond_data = cond.eval(runtime)
         if(cond_data !is BooleanData) {
             throw Exception("need boolean data in if-else")
         }
-        return if(cond_data.value) {
+        if(cond_data.value) {
             return trueExpr.eval(runtime)
         } else {
             return falseExpr.eval(runtime)

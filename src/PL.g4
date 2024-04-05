@@ -51,6 +51,12 @@ expression returns [Expr expr]
     | a=expression '!=' b=expression          { $expr = new Compare(Comparator.NE, $a.expr, $b.expr); }
     | a=expression '<' b=expression           { $expr = new Compare(Comparator.LT, $a.expr, $b.expr); }
     | a=expression '>' b=expression           { $expr = new Compare(Comparator.GT, $a.expr, $b.expr); }
+    | a=expression '&' b=expression           { $expr = new Bitwise(BitwiseEx.AND, $a.expr, $b.expr); }
+    | a=expression '|' b=expression           { $expr = new Bitwise(BitwiseEx.OR, $a.expr, $b.expr); }
+    | a=expression '^' b=expression           { $expr = new Bitwise(BitwiseEx.XOR, $a.expr, $b.expr); }
+    | a=expression '<<' b=expression          { $expr = new Bitwise(BitwiseEx.LS, $a.expr, $b.expr); }
+    | a=expression '>>' b=expression          { $expr = new Bitwise(BitwiseEx.RS, $a.expr, $b.expr); }
+    | '~' a=expression                        { $expr = new Bitwise(BitwiseEx.NOT, $a.expr, $a.expr); }
     ;
 
 comparison returns [Expr expr]
@@ -60,6 +66,15 @@ comparison returns [Expr expr]
     | a=expression '!=' b=expression           { $expr = new Compare(Comparator.NE, $a.expr, $b.expr); }
     | a=expression '<' b=expression            { $expr = new Compare(Comparator.LT, $a.expr, $b.expr); }
     | a=expression '>' b=expression            { $expr = new Compare(Comparator.GT, $a.expr, $b.expr); }
+    ;
+    
+bitwise returns [Expr expr]
+    : a=expression '&' b=expression           { $expr = new Bitwise(BitwiseEx.AND, $a.expr, $b.expr); }
+    | a=expression '|' b=expression           { $expr = new Bitwise(BitwiseEx.OR, $a.expr, $b.expr); }
+    | a=expression '^' b=expression           { $expr = new Bitwise(BitwiseEx.XOR, $a.expr, $b.expr); }
+    | a=expression '<<' b=expression          { $expr = new Bitwise(BitwiseEx.LS, $a.expr, $b.expr); }
+    | a=expression '>>' b=expression          { $expr = new Bitwise(BitwiseEx.RS, $a.expr, $b.expr); }
+    | a=expression '~' b=expression           { $expr = new Bitwise(BitwiseEx.NOT, $a.expr, $b.expr); }
     ;
 
 ifelse returns [Expr expr] :
