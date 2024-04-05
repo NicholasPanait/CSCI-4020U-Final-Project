@@ -10,6 +10,10 @@ class IntData(val value:Int): Data() {
     override fun toString(): String = "$value"
 }
 
+class BinaryData(val value:Int): Data() {
+    override fun toString(): String = "$value"
+}
+
 class StringData(val value:String): Data() {
     override fun toString(): String = "$value"
 }

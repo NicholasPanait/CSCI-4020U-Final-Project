@@ -13,6 +13,11 @@ class IntLiteral(val lexeme:String): Expr() {
     override fun toString(): String = lexeme
 }
 
+class BinaryLiteral(val lexeme:String): Expr() {
+    override fun eval(runtime:Runtime): Data = BinaryData(Integer.parseInt(lexeme.drop(2)))
+    override fun toString(): String = lexeme
+}
+
 class StringLiteral(val lexeme:String): Expr() {
     override fun eval(runtime:Runtime): Data = StringData(lexeme.replace("\"", ""))
     override fun toString(): String = lexeme
@@ -255,6 +260,10 @@ fun Int.toBinaryString(): String {
     return "0".repeat(paddingLength) + Integer.toBinaryString(this)
 }
 
+fun String.toBinaryInt(): Int {
+    return Integer.parseInt(this, 2)
+}
+
 enum class BitwiseEx {
     AND,
     OR,
@@ -266,14 +275,9 @@ enum class BitwiseEx {
 
 class Bitwise(val op:BitwiseEx, val left:Expr, val right:Expr): Expr() {
     override fun eval(runtime:Runtime): Data {
-        val x = left.eval(runtime)
-        val y = right.eval(runtime)
+        var x = left.eval(runtime)
+        var y = right.eval(runtime)
         if(x is IntData && y is IntData) {
-            // var xs = x.value.toBinaryString()
-            // var ys = y.value.toBinaryString()
-            // println(xs)
-            // println(ys)
-            
             return IntData(
                 when (op) {
                     BitwiseEx.AND -> x.value and y.value
@@ -285,6 +289,22 @@ class Bitwise(val op:BitwiseEx, val left:Expr, val right:Expr): Expr() {
                 }
             )
         }
+        x = x.toBinaryInt()
+        y = y.toBinaryInt()
+        println(x)
+        println(y)
+        // if(x is StringData && y is StringData) {
+            // return StringData(
+            //     when (op) {
+            //         BitwiseEx.AND -> (x and y).toBinaryString()
+            //         BitwiseEx.OR -> (x or y).toBinaryString()
+            //         BitwiseEx.XOR -> (x xor y).toBinaryString()
+            //         BitwiseEx.LS -> (x shl y).toBinaryString()
+            //         BitwiseEx.RS -> (x shr y).toBinaryString()
+            //         BitwiseEx.NOT -> (x.inv() and 0xFF).toBinaryString()
+            //     }
+            // )
+        // }
         throw Exception("cannot handle non-integer")
     }
 }

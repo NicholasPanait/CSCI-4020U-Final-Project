@@ -32,12 +32,13 @@ assignment returns [Expr expr]
 
 expression returns [Expr expr]
     : funcName=ID '(' p=parameterList ')'     { $expr = new Invoke($funcName.text, $p.returnParams);}
-    | '(' expression ')'                      { $expr = $expression.expr; }
+    | BINARY                                  { $expr = new BinaryLiteral($BINARY.text); }
     | BOOLEAN                                 { $expr = new BooleanLiteral($BOOLEAN.text); }
     | NUMERIC                                 { $expr = new IntLiteral($NUMERIC.text); }
     | STRING                                  { $expr = new StringLiteral($STRING.text); }
     | ID                                      { $expr = new Deref($ID.text); }
     | 'print(' expression ')'                 { $expr = new Print($expression.expr); }
+    | '(' expression ')'                      { $expr = $expression.expr; }
     | a=expression '||' b=expression          { $expr = new OrExpr($a.expr, $b.expr); }
     | a=expression '&&' b=expression          { $expr = new AndExpr($a.expr, $b.expr); }
     | a=expression '^^' b=expression          { $expr = new XorExpr($a.expr, $b.expr); }
@@ -105,7 +106,8 @@ parameterList returns [List<Expr> returnParams]
       {$returnParams = params;}
     | a=NUMERIC { List <Expr> params = new ArrayList<Expr>(); params.add(new IntLiteral($a.text)); } (',' b=(ID|STRING) { params.add(new IntLiteral($b.text)); })* {$returnParams = params;}
     ;
-    
+
+BINARY : '0b' ('0' | '1')+;
 NUMERIC : ('0' .. '9')+;
 STRING : '"' ( '\\"' | ~'"' )* '"';
 BOOLEAN : 'true' | 'false';
