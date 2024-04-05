@@ -5,6 +5,9 @@ import backend.*;
 }
 
 @members {
+    void display(String text){
+        System.out.println(text);
+    }
 }
 
 program returns [Expr expr] : 
@@ -16,82 +19,79 @@ program returns [Expr expr] :
         ;
 
 statement returns [Expr expr]
-    : assignment (';')*                      { $expr = $assignment.expr; }
-    | forLoop                                { $expr = $forLoop.expr; }
-    | function                               { $expr = $function.expr; }
-    | expression (';')*                      { $expr = $expression.expr; }
-    | ifElse                                 { $expr = $ifElse.expr; }
+    : assignment (';')*                  { $expr = $assignment.expr; }
+    | forLoop                            { $expr = $forLoop.expr; }
+    | ifelse                             { $expr = $ifelse.expr; }
+    | expression (';')*                  { $expr = $expression.expr; }
+    | functionDeclaration                { $expr = $functionDeclaration.expr; }
     ;
 
 assignment returns [Expr expr]
-    : 'let'? ID '=' expression               { $expr = new Assign($ID.text, $expression.expr); }
+    : ID '=' expression               { $expr = new Assign($ID.text, $expression.expr); }
+    ;
+
+expression returns [Expr expr]
+    : funcName=ID '(' p=parameterList ')'     { $expr = new Invoke($funcName.text, $p.returnParams);}
+    | '(' expression ')'                      { $expr = $expression.expr; }
+    | BOOLEAN                                 { $expr = new BooleanLiteral($BOOLEAN.text); }
+    | NUMERIC                                 { $expr = new IntLiteral($NUMERIC.text); }
+    | STRING                                  { $expr = new StringLiteral($STRING.text); }
+    | ID                                      { $expr = new Deref($ID.text); }
+    | 'print(' expression ')'                 { $expr = new Print($expression.expr); }
+    | a=expression '||' b=expression          { $expr = new OrExpr($a.expr, $b.expr); }
+    | a=expression '&&' b=expression          { $expr = new AndExpr($a.expr, $b.expr); }
+    | a=expression '^^' b=expression          { $expr = new XorExpr($a.expr, $b.expr); }
+    | a=expression '+' b=expression           { $expr = new Arithmetics(Operator.Add, $a.expr, $b.expr); }
+    | a=expression '-' b=expression           { $expr = new Arithmetics(Operator.Sub, $a.expr, $b.expr); }
+    | a=expression '++' b=expression          { $expr = new ConcatExpr($a.expr, $b.expr); }
+    | a=expression '*' b=expression           { $expr = new Arithmetics(Operator.Mul, $a.expr, $b.expr); }
+    | a=expression '<=' b=expression          { $expr = new Compare(Comparator.LE, $a.expr, $b.expr); }
+    | a=expression '>=' b=expression          { $expr = new Compare(Comparator.GE, $a.expr, $b.expr); }
+    | a=expression '==' b=expression          { $expr = new Compare(Comparator.EQ, $a.expr, $b.expr); }
+    | a=expression '!=' b=expression          { $expr = new Compare(Comparator.NE, $a.expr, $b.expr); }
+    | a=expression '<' b=expression           { $expr = new Compare(Comparator.LT, $a.expr, $b.expr); }
+    | a=expression '>' b=expression           { $expr = new Compare(Comparator.GT, $a.expr, $b.expr); }
+    ;
+
+comparison returns [Expr expr]
+    : a=expression '<=' b=expression           { $expr = new Compare(Comparator.LE, $a.expr, $b.expr); }
+    | a=expression '>=' b=expression           { $expr = new Compare(Comparator.GE, $a.expr, $b.expr); }
+    | a=expression '==' b=expression           { $expr = new Compare(Comparator.EQ, $a.expr, $b.expr); }
+    | a=expression '!=' b=expression           { $expr = new Compare(Comparator.NE, $a.expr, $b.expr); }
+    | a=expression '<' b=expression            { $expr = new Compare(Comparator.LT, $a.expr, $b.expr); }
+    | a=expression '>' b=expression            { $expr = new Compare(Comparator.GT, $a.expr, $b.expr); }
+    ;
+
+ifelse returns [Expr expr] :
+    { List<Expr> trueStatements = new ArrayList<Expr>(); }
+    { List<Expr> falseStatements = new ArrayList<Expr>(); }
+    'if' '(' comparison ')' '{' (ifStatement=statement {trueStatements.add($ifStatement.expr);})+ '}' ('else' '{' (elseStatement=statement {falseStatements.add($elseStatement.expr);})+ '}' )*
+    { $expr = new Ifelse($comparison.expr, new Block(trueStatements), new Block(falseStatements)); }
     ;
 
 forLoop returns [Expr expr] : 
-    { List <Expr> statements = new ArrayList<Expr>(); }
-    'for' '(' ID ' in ' Start=INTEGER '..' End=INTEGER ')' '{' 
+    { List <Expr> stmts = new ArrayList<Expr>(); }
+    'for' '(' name=ID ' in ' lowerBound=NUMERIC '..' upperBound=NUMERIC ')' '{' 
         (statement 
-            { statements.add($statement.expr);} 
+            { stmts.add($statement.expr);} 
         )+
     '}'
-    { $expr = new ForLoop($ID.text, $Start.text, $End.text, statements);};
+    { $expr = new ForLoop($name.text, $lowerBound.text, $upperBound.text, stmts);};
     
-ifElse returns [Expr expr] : 
-    { List <Expr> statementsT = new ArrayList<Expr>(); }
-    { List <Expr> statementsF = new ArrayList<Expr>(); }
-    'if' '(' expression ')' '{' 
-        (statement 
-            { statementsT.add($statement.expr);} 
-        )+
-    '}' ( 'else' '{'
-        (statement
-            { statementsF.add($statement.expr);}
-        )+
-    '}' )?
-    { $expr = new Ifelse($expression.expr, new Block(statementsT), new Block(statementsF));};
-
-expression returns [Expr expr]
-    : ID '(' parameters ')'                  { $expr = new Invoke($ID.text, $parameters.list);}
-    | '(' expression ')'                     { $expr = $expression.expr; }
-    | INTEGER                                { $expr = new IntLiteral($INTEGER.text); }
-    | STRING                                 { $expr = new StringLiteral($STRING.text); }
-    | ID                                     { $expr = new Deref($ID.text); }
-    | 'print(' expression ')'                { $expr = new Print($expression.expr); }
-    | e1=expression '++' e2=expression       { $expr = new ConcatExpr($e1.expr, $e2.expr); }
-    | e1=expression '+' e2=expression        { $expr = new Arithmetics(Operator.Add, $e1.expr, $e2.expr); }
-    | e1=expression '-' e2=expression        { $expr = new Arithmetics(Operator.Sub, $e1.expr, $e2.expr); }
-    | e1=expression '*' e2=expression        { $expr = new Arithmetics(Operator.Mul, $e1.expr, $e2.expr); }
-    | e1=expression '/' e2=expression        { $expr = new Arithmetics(Operator.Div, $e1.expr, $e2.expr); }
-    | e1=expression '<' e2=expression        { $expr = new Compare(Comparator.LT, $e1.expr, $e2.expr); }
-    | e1=expression '<=' e2=expression       { $expr = new Compare(Comparator.LE, $e1.expr, $e2.expr); }
-    | e1=expression '>' e2=expression        { $expr = new Compare(Comparator.GT, $e1.expr, $e2.expr); }
-    | e1=expression '>=' e2=expression       { $expr = new Compare(Comparator.GE, $e1.expr, $e2.expr); }
-    | e1=expression '==' e2=expression       { $expr = new Compare(Comparator.EQ, $e1.expr, $e2.expr); }
-    | e1=expression '!=' e2=expression       { $expr = new Compare(Comparator.NE, $e1.expr, $e2.expr); }
+functionDeclaration returns [Expr expr]
+    : {List<Expr> funcStatements = new ArrayList<Expr>();} 
+    'function' name=ID '(' params=parameterList ')' '{' (statement {funcStatements.add($statement.expr);})* '}' {$expr = new Declare($name.text, $params.returnParams, new Block(funcStatements));}
     ;
 
-function returns [Expr expr]:
-    {List<Expr> statements = new ArrayList<Expr>();} 
-    'function' ID '(' parameters ')' '{' 
-        (statement
-            { statements.add($statement.expr);}
-        )* 
-     '}'
-     { $expr = new Declare($ID.text, $parameters.list, new Block(statements));}
+parameterList returns [List<Expr> returnParams]
+    : { List <Expr> params = new ArrayList<Expr>(); }
+      (a=(ID|STRING) {params.add(new StringLiteral($a.text)); } | (expression {params.add($expression.expr);}))
+      ((',' b=(ID|STRING) { params.add(new StringLiteral($b.text)); }) | (',' expression {params.add($expression.expr);}))* 
+      {$returnParams = params;}
+    | a=NUMERIC { List <Expr> params = new ArrayList<Expr>(); params.add(new IntLiteral($a.text)); } (',' b=(ID|STRING) { params.add(new IntLiteral($b.text)); })* {$returnParams = params;}
     ;
     
-parameters returns [List<Expr> list]
-    : { List <Expr> statements = new ArrayList<Expr>(); }
-    (
-        ID {statements.add(new StringLiteral($ID.text)); } | (expression {statements.add($expression.expr);})
-    )
-    (
-        (',' ID { statements.add(new StringLiteral($ID.text)); }) | (',' expression {statements.add($expression.expr);})
-    )* 
-      {$list = statements;}
-    ;
-    
-INTEGER : ('0' .. '9')+;
+NUMERIC : ('0' .. '9')+;
 STRING : '"' ( '\\"' | ~'"' )* '"';
 BOOLEAN : 'true' | 'false';
 ID : ('a' .. 'z' | 'A' .. 'Z' | '_') ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_')*;

@@ -30,6 +30,52 @@ class Assign(val symbol:String, val expr:Expr): Expr() {
     }
 }
 
+class OrExpr(val expr1: Expr, val expr2: Expr) : Expr() {
+    override fun eval(runtime: Runtime): Data {
+        val left = expr1.eval(runtime)
+        val right = expr2.eval(runtime)
+
+        if (left is BooleanData && right is BooleanData) {
+            return BooleanData(left.value || right.value)
+        }
+        else {
+            throw Exception("You must pass 2 Boolean operands")
+        }
+    }
+}
+
+class AndExpr(val expr1: Expr, val expr2: Expr) : Expr() {
+    override fun eval(runtime: Runtime): Data {
+        val left = expr1.eval(runtime)
+        val right = expr2.eval(runtime)
+
+        if (left is BooleanData && right is BooleanData) {
+            return BooleanData(left.value && right.value)
+        }
+        else {
+            throw Exception("You must pass 2 Boolean operands")
+        }
+    }
+}
+
+class XorExpr(val expr1: Expr, val expr2: Expr) : Expr() {
+    override fun eval(runtime: Runtime): Data {
+        val left = expr1.eval(runtime)
+        val right = expr2.eval(runtime)
+
+        if (left is BooleanData && right is BooleanData) {
+            if (left.value != right.value){
+                return BooleanData(true)
+            }
+            else{
+                return BooleanData(false)
+            }
+        }
+        else {
+            throw Exception("You must pass 2 Boolean operands")
+        }
+    }
+}
 
 class Deref(val name:String): Expr() {
     override fun eval(runtime:Runtime):Data {
