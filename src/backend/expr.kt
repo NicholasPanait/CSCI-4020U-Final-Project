@@ -173,6 +173,24 @@ class Arithmetics(val op:Operator, val left:Expr, val right:Expr): Expr() {
             }
             return StringData(result)
         }
+        else if (x is BinaryData && y is BinaryData) {
+            val intx = x.toString().toInt(2)
+            val inty = y.toString().toInt(2)
+            return BinaryData (
+                when(op) {
+                    Operator.Add -> Integer.toBinaryString(intx + inty).toInt()
+                    Operator.Sub -> Integer.toBinaryString(intx - inty).toInt()
+                    Operator.Mul -> Integer.toBinaryString(intx * inty).toInt()
+                    Operator.Div -> {
+                        if(inty != 0) {
+                            Integer.toBinaryString(intx / inty).toInt()
+                        } else {
+                            throw Exception("cannot divide by zero")
+                        }
+                    }
+                }
+            )
+        }
         throw Exception("cannot handle non-integer")
     }
 }
@@ -289,10 +307,10 @@ class Bitwise(val op:BitwiseEx, val left:Expr, val right:Expr): Expr() {
                 }
             )
         }
-        x = x.toBinaryInt()
-        y = y.toBinaryInt()
-        println(x)
-        println(y)
+        // x = x.toBinaryInt()
+        // y = y.toBinaryInt()
+        // println(x)
+        // println(y)
         // if(x is StringData && y is StringData) {
             // return StringData(
             //     when (op) {

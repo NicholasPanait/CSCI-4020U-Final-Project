@@ -46,6 +46,7 @@ expression returns [Expr expr]
     | a=expression '-' b=expression           { $expr = new Arithmetics(Operator.Sub, $a.expr, $b.expr); }
     | a=expression '++' b=expression          { $expr = new ConcatExpr($a.expr, $b.expr); }
     | a=expression '*' b=expression           { $expr = new Arithmetics(Operator.Mul, $a.expr, $b.expr); }
+    | a=expression '/' b=expression           { $expr = new Arithmetics(Operator.Div, $a.expr, $b.expr); }
     | a=expression '<=' b=expression          { $expr = new Compare(Comparator.LE, $a.expr, $b.expr); }
     | a=expression '>=' b=expression          { $expr = new Compare(Comparator.GE, $a.expr, $b.expr); }
     | a=expression '==' b=expression          { $expr = new Compare(Comparator.EQ, $a.expr, $b.expr); }
