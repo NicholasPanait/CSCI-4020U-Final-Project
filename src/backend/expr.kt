@@ -1,0 +1,219 @@
+package backend
+
+abstract class Expr {
+    abstract fun eval(runtime:Runtime):Data
+}
+
+class NoneExpr(): Expr() {
+    override fun eval(runtime:Runtime) = None
+}
+
+class IntLiteral(val lexeme:String): Expr() {
+    override fun eval(runtime:Runtime): Data = IntData(Integer.parseInt(lexeme))
+    override fun toString(): String = lexeme
+}
+
+class StringLiteral(val lexeme:String): Expr() {
+    override fun eval(runtime:Runtime): Data = StringData(lexeme.replace("\"", ""))
+    override fun toString(): String = lexeme
+}
+
+class BooleanLiteral(val lexeme:String): Expr() {
+    override fun eval(runtime:Runtime): Data = BooleanData(lexeme.equals("true"))
+    override fun toString(): String = lexeme
+}
+
+class Assign(val symbol:String, val expr:Expr): Expr() {
+    override fun eval(runtime:Runtime): Data
+    = expr.eval(runtime).apply {
+        runtime.symbolTable.put(symbol, this)
+    }
+}
+
+
+class Deref(val name:String): Expr() {
+    override fun eval(runtime:Runtime):Data {
+        val data = runtime.symbolTable[name]
+        if(data == null) {
+            throw Exception("$name is not assigned.")
+        }
+        return data
+    }
+}
+
+class Print(val output:Expr):Expr() {
+    override fun eval(runtime:Runtime):Data {
+        System.out.println(output.eval(runtime))
+        return None
+    }
+}
+
+class Block(val exprList: List<Expr>): Expr() {
+    override fun eval(runtime:Runtime): Data {
+        var result:Data = None
+        exprList.forEach {
+            result = it.eval(runtime)
+        }
+        return result
+    }
+}
+
+class ConcatExpr(val expr1: Expr, val expr2: Expr) : Expr() {
+    override fun eval(runtime: Runtime): Data {
+        val left = expr1.eval(runtime)
+        val right = expr2.eval(runtime)
+
+        if (left is StringData && right is StringData) {
+            return StringData(left.value + right.value)
+        } else {
+            throw Exception("Both operands must be strings")
+        }
+    }
+}
+
+enum class Operator {
+    Add,
+    Sub,
+    Mul,
+    Div
+}
+
+class Arithmetics(val op:Operator, val left:Expr, val right:Expr): Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val x = left.eval(runtime)
+        val y = right.eval(runtime)
+        if(x is IntData && y is IntData) {
+            return IntData(
+                when(op) {
+                    Operator.Add -> x.value + y.value
+                    Operator.Sub -> x.value - y.value
+                    Operator.Mul -> x.value * y.value
+                    Operator.Div -> {
+                        if(y.value != 0) {
+                            x.value / y.value
+                        } else {
+                            throw Exception("cannot divide by zero")
+                        }
+                    }
+                }
+            )
+        }
+        else if(x is StringData && y is IntData) {
+            if(op != Operator.Mul){
+                throw Exception("cannot use + - / with a String and Int")
+            }
+            var count = 1
+            var result = x.value
+            while (count < y.value) {
+                result += x.value
+                count++
+            }
+            return StringData(result)
+        }
+        else if(x is IntData && y is StringData) {
+            if(op != Operator.Mul){
+                throw Exception("cannot use + - / with a String and Int")
+            }
+            var count = 1
+            var result = y.value
+            while (count < x.value) {
+                result += y.value
+                count++
+            }
+            return StringData(result)
+        }
+        throw Exception("cannot handle non-integer")
+    }
+}
+
+class ForLoop(val name: String, val start: String, val end: String, val exprList: List<Expr>): Expr() {
+    override fun eval(runtime:Runtime):Data {
+        val s = start.toInt()
+        val e = end.toInt()
+        Assign(name, IntLiteral(start)).eval(runtime)
+        for (i in s .. e){
+            Assign(name, IntLiteral("$i")).eval(runtime)
+            exprList.forEach {
+                it.eval(runtime)
+            }
+        }
+        return None
+    }
+}
+
+class Declare(val name: String, val params: List<Expr>, val body: Expr): Expr() {
+    override fun eval(runtime:Runtime):Data {
+        var p: List<String> = params.map{
+            it.eval(runtime).toString()
+        }.toList()
+        return FuncData(name, p, body).also {
+            runtime.symbolTable[name] = it
+        }
+    }
+}
+
+class Invoke(val name:String, val args:List<Expr>):Expr() {
+    override fun eval(runtime:Runtime):Data {
+        val func:Data? = runtime.symbolTable[name]
+        if(func == null) {
+            throw Exception("$name does not exist")
+        }
+        if(func !is FuncData) {
+            throw Exception("$name is not a function.")
+        }
+        if(func.params.size != args.size) {
+            throw Exception(
+                "$name expects ${func.params.size} arguments "
+                + "but received ${args.size}"
+            )
+        }
+        val r = runtime.subscope(
+            func.params.zip(args.map {it.eval(runtime)}).toMap()
+        )
+        return func.body.eval(r)
+    }
+}
+
+enum class Comparator {
+    LT,
+    LE,
+    GT,
+    GE,
+    EQ,
+    NE,
+}
+
+class Compare(val comparator: Comparator, val left: Expr, val right: Expr ): Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val x = left.eval(runtime)
+        val y = right.eval(runtime)
+        if(x is IntData && y is IntData) {
+            return BooleanData(
+                when(comparator) {
+                    Comparator.LT -> x.value < y.value
+                    Comparator.LE -> x.value <= y.value
+                    Comparator.GT -> x.value > y.value
+                    Comparator.GE -> x.value >= y.value
+                    Comparator.EQ -> x.value == y.value
+                    Comparator.NE -> x.value != y.value
+                }
+            )
+        } else {
+            throw Exception("Non-integer data in comparison")
+        }
+    }
+}
+
+class Ifelse(val cond:Expr, val trueExpr:Expr, val falseExpr:Expr ): Expr() {
+    override fun eval(runtime:Runtime): Data {
+        val cond_data = cond.eval(runtime)
+        if(cond_data !is BooleanData) {
+            throw Exception("need boolean data in if-else")
+        }
+        return if(cond_data.value) {
+            return trueExpr.eval(runtime)
+        } else {
+            return falseExpr.eval(runtime)
+        }
+    }
+}
