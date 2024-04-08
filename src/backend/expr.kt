@@ -35,6 +35,19 @@ class Assign(val symbol:String, val expr:Expr): Expr() {
     }
 }
 
+class NotExpr(val expr: Expr) : Expr() {
+    override fun eval(runtime: Runtime): Data {
+        val bool = expr.eval(runtime)
+
+        if (bool is BooleanData) {
+            return BooleanData(!(bool.value))
+        }
+        else {
+            throw Exception("You must pass a Boolean operand")
+        }
+    }
+}
+
 class OrExpr(val expr1: Expr, val expr2: Expr) : Expr() {
     override fun eval(runtime: Runtime): Data {
         val left = expr1.eval(runtime)

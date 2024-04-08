@@ -40,6 +40,7 @@ expression returns [Expr expr]
     | ID                                      { $expr = new Deref($ID.text); }
     | 'print(' expression ')'                 { $expr = new Print($expression.expr); }
     | '(' expression ')'                      { $expr = $expression.expr; }
+    | '!' expression                          { $expr = new NotExpr($expression.expr); }
     | a=expression '||' b=expression          { $expr = new OrExpr($a.expr, $b.expr); }
     | a=expression '&&' b=expression          { $expr = new AndExpr($a.expr, $b.expr); }
     | a=expression '^^' b=expression          { $expr = new XorExpr($a.expr, $b.expr); }
