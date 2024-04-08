@@ -335,3 +335,23 @@ class Ifelse(val cond:Expr, val trueExpr:Expr, val falseExpr:Expr ): Expr() {
         }
     }
 }
+
+class WhileLoop(val cond:Expr, val exprList: List<Expr>): Expr() {
+    override fun eval(runtime:Runtime): Data {
+        var flag = cond.eval(runtime) as BooleanData
+        var iter:Int = 1_000_000
+        while(flag.value) {
+            exprList.forEach {
+                it.eval(runtime)
+            }
+            flag = cond.eval(runtime) as BooleanData
+            if(iter == 0) {
+                println("MAX_ITER reached")
+                println(runtime)
+                return None
+            }
+            iter --
+        }
+        return None
+    }
+}

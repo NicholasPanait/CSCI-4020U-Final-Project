@@ -21,6 +21,7 @@ program returns [Expr expr] :
 statement returns [Expr expr]
     : assignment (';')*                  { $expr = $assignment.expr; }
     | forLoop                            { $expr = $forLoop.expr; }
+    | whileLoop                          { $expr = $whileLoop.expr; }
     | ifelse                             { $expr = $ifelse.expr; }
     | expression (';')*                  { $expr = $expression.expr; }
     | functionDeclaration                { $expr = $functionDeclaration.expr; }
@@ -94,6 +95,15 @@ forLoop returns [Expr expr] :
         )+
     '}'
     { $expr = new ForLoop($name.text, $lowerBound.text, $upperBound.text, stmts);};
+    
+whileLoop returns [Expr expr] : 
+    { List <Expr> stmts = new ArrayList<Expr>(); }
+    'while' '(' comparison ')' '{' 
+        (statement 
+            { stmts.add($statement.expr);} 
+        )+
+    '}'
+    { $expr = new WhileLoop($comparison.expr, stmts);};
     
 functionDeclaration returns [Expr expr]
     : {List<Expr> funcStatements = new ArrayList<Expr>();} 
